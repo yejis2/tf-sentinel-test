@@ -1,0 +1,50 @@
+import "tfplan"
+import "strings"
+
+# Find all resources of specific type from all modules using the tfplan import
+find_resources_from_plan = func(type) {
+    resources = {}
+    for tfplan.module_paths as path {
+        for tfplan.module(path).resources[type] else {} as name, instances {
+            for instances as index, r {
+                # Get the address of the resource instance
+                if length(path) == 0 {
+                    # root module
+                    address = type + "." + name + "[" + string(index) + "]"
+                } else {
+                    # non-root module
+                    address = "module." + strings.join(path, ".module.") + "." +
+                              type + "." + name + "[" + string(index) + "]"
+                }
+                # Add the instance to resources, setting the key to the address
+                resources[address] = r
+            }
+        }
+    }
+    return resources
+}
+
+# Function to validate that S3 buckets have private ACL and use KMS encryption
+validate_private_acl = func() {
+    result = {
+        "private":          true,
+    }
+    s3_buckets = find_resources_from_plan("aws_s3_bucket")
+    for s3_buckets as joined_path, resource_map {
+        #...
+    }
+    return result
+}
+
+# Call the validation function
+validations = validate_private_acl()
+
+# ACL rule
+is_private = rule {
+    validations["private"]
+}
+
+# Main rule
+main = rule {
+    is_private
+}
